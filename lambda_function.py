@@ -17,19 +17,18 @@
 # AWS Lambda function to mirror an on-premises DNS to Route 53 private hosted zone
 # Supports both forward and reverse zones for replications to Route 53.
 
-# These imports are bundled local to the lambda function 
+# These imports are bundled local to the lambda function
+#pylint: disable=wildcard-import,unused-wildcard-import,too-many-arguments,too-many-branches,too-many-nested-blocks,too-many-locals,wrong-import-order,simplifiable-if-statement,too-many-statements
 import dns.query
 import dns.zone
-import lookup_rdtype
 from dns.rdataclass import *
 from dns.rdatatype import *
-
+import lookup_rdtype
 # libraries that are available on Lambda
-import os
 import sys
-import boto3
+import boto3#pylint: disable=import-error
 
-# If you need to use a proxy server to access the Internet then hard code it 
+# If you need to use a proxy server to access the Internet then hard code it
 # the details below, otherwise comment out or remove.
 #os.environ["http_proxy"] = "10.10.10.10:3128"  # My on-premises proxy server
 #os.environ["https_proxy"] = "10.10.10.10:3128"
@@ -159,7 +158,7 @@ def diff_zones(zone1, zone2, ignore_ttl):
 
 
 # Main Handler for lambda function
-def lambda_handler(event, context):
+def lambda_handler(event, context):#pylint: disable=unused-argument
     # Setup configuration based on JSON formatted event data
     try:
         domain_name = event['Domain']
@@ -207,8 +206,11 @@ def lambda_handler(event, context):
 
     # Compare the master and VPC Route 53 zone file
     vpc_soa = vpc_zone.get_rdataset('@', 'SOA')
-    vpc_serial = vpc_soa[0].serial
-    if not (vpc_serial > serial):
+    try:
+        vpc_serial = vpc_soa[0].serial
+    except:
+        vpc_serial = 0
+    if not vpc_serial > serial:
         print 'Comparing SOA serial %s with %s ' % (vpc_serial, serial)
         differences = diff_zones(vpc_zone, master_zone, ignore_ttl)
 
