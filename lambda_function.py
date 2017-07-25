@@ -90,7 +90,6 @@ def update_resource_record_loop():
     '''
     while not taskQ.empty():
         zone_id, host_name, hosted_zone_name, rectype, changerec, ttl, action = taskQ.get(block = False)
-        print "updating: {0}".format(host_name)
         update_resource_record(zone_id, host_name, hosted_zone_name, rectype, changerec, ttl, action)
     return
 
@@ -230,12 +229,15 @@ def lambda_handler(event, context):#pylint: disable=unused-argument
     if not vpc_serial > serial:
         print 'Comparing SOA serial %s with %s ' % (vpc_serial, serial)
         differences = diff_zones(vpc_zone, master_zone, ignore_ttl)
-
+        count = 0
         for host, rdtype, record, ttl, action in differences:
+            count +=1
             if rdtype != dns.rdatatype.SOA:
                 taskQ.put([route53_zone_id, host, domain_name, lookup_rdtype.recmap(rdtype), record, ttl,action])
                 #update_resource_record(route53_zone_id, host, domain_name, lookup_rdtype.recmap(rdtype), record, ttl,action)
-        for i in range(3):
+        print "total records: {0}".format(count)
+        #16k records, in 300 seconds... 53 a second. Lets try 100 threads?
+        for i in range(100):
             print "launching thread number: {0}".format(i)
             t = threading.Thread(target=update_resource_record_loop)
             t.setDaemon(True)
