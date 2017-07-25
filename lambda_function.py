@@ -88,10 +88,11 @@ def update_resource_record_loop():
     a temporarly empty Queue
     '''
     t = threading.currentThread()
+    print t
     # I should explain this. The Iter function will continue to poll taskQ.get, until it resturns a None
     # object. Then it'll stop iterating. THis is because taskQ.get is not it's self iterable
     # https://docs.python.org/2/library/functions.html#iter
-    for zone_id, host_name, hosted_zone_name, rectype, changerec, ttl, action in iter( taskQ.get(),None):
+    for zone_id, host_name, hosted_zone_name, rectype, changerec, ttl, action in iter( taskQ.get,None):
         update_resource_record(zone_id, host_name, hosted_zone_name, rectype, changerec, ttl, action)
     return
 
