@@ -27,6 +27,7 @@ import lookup_rdtype
 # libraries that are available on Lambda
 import sys
 import boto3
+import time
 import Queue
 import threading
 
@@ -87,12 +88,9 @@ def update_resource_record_loop():
     Designed to have a full queue before starting, it will not cope with
     a temporarly empty Queue
     '''
-    t = threading.currentThread()
-    print t
-    # I should explain this. The Iter function will continue to poll taskQ.get, until it resturns a None
-    # object. Then it'll stop iterating. THis is because taskQ.get is not it's self iterable
-    # https://docs.python.org/2/library/functions.html#iter
-    for zone_id, host_name, hosted_zone_name, rectype, changerec, ttl, action in iter( taskQ.get,None):
+    while not taskQ.empty():
+        zone_id, host_name, hosted_zone_name, rectype, changerec, ttl, action = taskQ.get(block = False)
+        print "updating: {0}".format(host_name)
         update_resource_record(zone_id, host_name, hosted_zone_name, rectype, changerec, ttl, action)
     return
 
@@ -237,17 +235,13 @@ def lambda_handler(event, context):#pylint: disable=unused-argument
             if rdtype != dns.rdatatype.SOA:
                 taskQ.put([route53_zone_id, host, domain_name, lookup_rdtype.recmap(rdtype), record, ttl,action])
                 #update_resource_record(route53_zone_id, host, domain_name, lookup_rdtype.recmap(rdtype), record, ttl,action)
-                for i in range(3):
-                    print "launching thread number: {0}".format(i)
-                    t = threading.Thread(target=update_resource_record_loop)
-                    t.setDaemon(True)
-                    t.start()
-                main_thread = threading.currentThread()
-                for mt in threading.enumerate():
-                    if mt is main_thread:
-                        continue
-                    #collect the threads
-                    mt.join()
+        for i in range(3):
+            print "launching thread number: {0}".format(i)
+            t = threading.Thread(target=update_resource_record_loop)
+            t.setDaemon(True)
+            t.start()
+        while threading.activeCount() > 1:
+            time.sleep(1)
 
 
         # Update the VPC SOA to reflect the version just processed
