@@ -75,7 +75,7 @@ def update_resource_record(zone_id, host_name, hosted_zone_name, rectype, change
             route53.change_resource_record_sets(HostedZoneId=zone_id, ChangeBatch=dns_changes)
         except BaseException as e:
             print e
-            sys.exit('ERROR: Unable to update zone %s' % hosted_zone_name)
+            print 'ERROR: Unable to update zone %s' % hosted_zone_name
         return True
 
 
